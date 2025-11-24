@@ -50,7 +50,7 @@ import logging
 from queue import Full
 from . import GSV6_BasicFrameType
 from . import GSV6_ErrorCodes
-from . import threading
+import threading
 
 
 # from twisted.internet import protocol
