@@ -73,7 +73,7 @@ from twisted.internet.error import ReactorAlreadyInstalledError
 '''
 
 # load default Logging config
-from GSV_Exceptions import GSV6_ConversionError_Exception, GSV_CommunicationException
+from .GSV_Exceptions import GSV6_ConversionError_Exception, GSV_CommunicationException
 
 logging.basicConfig()
 
