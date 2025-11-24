@@ -48,9 +48,9 @@ __author__ = 'Dennis Rump'
 
 import logging
 from queue import Full
-import GSV6_BasicFrameType
-import GSV6_ErrorCodes
-import threading
+from . import GSV6_BasicFrameType
+from . import GSV6_ErrorCodes
+from . import threading
 
 
 # from twisted.internet import protocol

@@ -46,7 +46,7 @@ __author__ = 'Dennis Rump'
 #
 ###############################################################################
 
-import GSV_Exceptions
+from . import GSV_Exceptions
 from .GSV6_ErrorCodes import error_code_to_error_shortcut
 
 
