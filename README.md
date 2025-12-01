@@ -84,6 +84,7 @@ visualization, logging, or integration into test benches.
 
 - Measurement
   - `ReadValue()`
+  - `ReadMultiple()`
   - `writeDataRate(frequency)`
   - `StartTransmission()`
   - `StopTransmission()`
