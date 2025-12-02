@@ -51,16 +51,16 @@ __author__ = 'Robert bremsat & Dennis Rump'
 #
 ###############################################################################
 
-from gsv8 import gsv8
+from gsv86 import gsv86
 from datetime import datetime
 
 if __name__ == '__main__':
     # construct device
     # Unix
-    dev1 = gsv8("/dev/ttyACM0",115200)
+    dev1 = gsv86("/dev/ttyACM0",115200)
     # Windows
-    # dev1 = gsv8("COM26", 115200)
-    # dev1 = gsv8("COM26", 115200)
+    # dev1 = gsv86("COM26", 115200)
+    # dev1 = gsv86("COM26", 115200)
 
     print "test: " + ' '.join(format(x, '02x') for x in bytearray(dev1.isPinHigh(1)))
 

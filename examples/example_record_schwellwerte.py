@@ -52,16 +52,16 @@ __author__ = 'Dennis Rump'
 #
 ###############################################################################
 
-from gsv8 import gsv8
+from gsv86 import gsv86
 import signal
 import sys
 
 if __name__ == '__main__':
     # construct device
     # Unix
-    dev1 = gsv8("/dev/ttyACM0",115200)
+    dev1 = gsv86("/dev/ttyACM0",115200)
     # Windows
-    # dev1 = gsv8(21, 115200)
+    # dev1 = gsv86(21, 115200)
 
     schwellwert1 = 10.0
     hysterese_high = 7.0

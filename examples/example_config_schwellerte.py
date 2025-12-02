@@ -51,14 +51,14 @@ __author__ = 'Dennis Rump'
 #
 ###############################################################################
 
-from gsv8 import gsv8
+from gsv86 import gsv86
 
 if __name__ == '__main__':
     # construct device
     # Unix
-    dev1 = gsv8("/dev/ttyACM0",230400)
+    dev1 = gsv86("/dev/ttyACM0",230400)
     # Windows
-    # dev1 = gsv8(21, 115200)
+    # dev1 = gsv86(21, 115200)
 
     # Datenrate setzten
     result = dev1.writeDataRate(50.0)
