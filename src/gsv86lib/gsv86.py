@@ -118,7 +118,7 @@ class gsv86:
     # The Queue-Object is an threadsafe FIFO Buffer.
     # Operations like put and get are atomic
     # this queue holds all incomming complete Frames
-    _frameInBuffer = Queue(50)
+    _frameInBuffer = Queue(2000)
 
     # this queue holds the ordered config requests
     _antwortQueue = Queue(50)

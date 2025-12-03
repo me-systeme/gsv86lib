@@ -31,24 +31,24 @@ PORT = "COM3"          # e.g. "COM3" on Windows or "/dev/ttyACM0" on Linux
 BAUDRATE = 115200
 
 # Transmission frequency of the GSV-8 in Hz
-sample_frequency = 10.0     # the device sends sample_frequency frames per second (so every 1000/sample_frequence ms)
+sample_frequency = 5000.0     # the device sends sample_frequency frames per second (so one frame every 1000/sample_frequency ms)
 
 # Sampling rate of the worker thread in milliseconds
 # (time between two ReadMultiple() calls)
-# must be greater than 1000/sample_frequence because otherwise there are empty reads 
-# if refresh_ms could be divided by 1000/sample_frequence: the thread reads refresh_ms*sample_frequence/1000 frames on every call 
+# must be greater than 1000/sample_frequency because otherwise there could be empty reads 
+# if refresh_ms could be divided by 1000/sample_frequency: the thread reads refresh_ms*sample_frequency/1000 frames on every call 
 refresh_ms = 200            
 
 # Maximum number of frames to read per ReadMultiple() call
-# must be greater than refresh_ms*sample_frequence/1000 because otherwise there are more frames than max_frames_per_call in the queue
-max_frames_per_call = 100   
+# must be greater than refresh_ms*sample_frequency/1000 because otherwise there are more frames than max_frames_per_call in the queue
+max_frames_per_call = 1500   
 
 # every second the threads reads max_frames_per_call * 1000/refresh_ms frames, must be greater than sample_frequency
 
 # Total measurement duration in seconds
 # after measurement_duration_s seconds the application must register measurement_duration_s * sample_frequency frames
 #  example: after 10s the application must register 10 * sample_frequency frames
-measurement_duration_s = 10.0     
+measurement_duration_s = 1.0     
  
 
 
@@ -61,13 +61,16 @@ class ReadMultipleWorker(threading.Thread):
     the total number of acquired measurement frames.
     """
 
-    def __init__(self, device: gsv86, refresh_ms: int, max_frames: int, stop_event: threading.Event):
+    def __init__(self, device: gsv86, refresh_ms: int, max_frames: int, stop_event: threading.Event, device_start: float):
         super().__init__(daemon=True)
         self._dev = device
         self._refresh_ms = refresh_ms
         self._max_frames = max_frames
         self._stop_event = stop_event
         self.total_samples = 0   # total number of acquired frames
+        self.messcount = 0
+        self.device_start = device_start
+        self.t_start = 0
 
     def run(self):
         refresh_s = self._refresh_ms / 1000.0
@@ -82,6 +85,11 @@ class ReadMultipleWorker(threading.Thread):
             if frames:
                 # frames is a list of measurement frames -> count them
                 self.total_samples += len(frames)
+                self.messcount += 1
+                if self.messcount == 1:
+                    self.t_start = time.perf_counter() - self.device_start
+                    self.total_samples = 0
+                    #print("first_frames", self.t_start)
 
             # wait until the next ReadMultiple() call
             time.sleep(refresh_s)
@@ -104,21 +112,22 @@ def init_device() -> gsv86:
     # Start streaming
     try:
         dev.StartTransmission()
-        print("StartTransmission() executed – device is now streaming.")
+        device_start = time.perf_counter()
+        print("StartTransmission() executed – device is now streaming.", time.perf_counter() - device_start)
     except Exception as e:
         print(f"Error: StartTransmission() failed: {e}", file=sys.stderr)
 
     # small delay to allow internal buffering
-    time.sleep(0.05)
+    #time.sleep(0.5)
 
-    return dev
+    return dev, device_start
 
 
 # -----------------------------
 # main
 # -----------------------------
 def main():
-    dev = init_device()
+    dev, device_start = init_device()
 
     stop_event = threading.Event()
     worker = ReadMultipleWorker(
@@ -126,28 +135,29 @@ def main():
         refresh_ms=refresh_ms,
         max_frames=max_frames_per_call,
         stop_event=stop_event,
+        device_start = device_start
     )
 
-    print(f"Starting measurement for {measurement_duration_s} seconds ...")
+    
     worker.start()
-
-    t_start = time.perf_counter()
+    #print(f"Starting measurement for {measurement_duration_s} seconds ...", time.perf_counter() - device_start)
 
     try:
         # main thread waits for measurement duration (or until Ctrl+C)
         while True:
-            elapsed = time.perf_counter() - t_start
-            if elapsed >= measurement_duration_s:
+            elapsed = time.perf_counter() - device_start
+            if elapsed >= measurement_duration_s + worker.t_start:
                 break
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("\nMeasurement cancelled by user.")
 
     # stop worker thread
+    #print("Calling StopTransmission() ...", time.perf_counter() - device_start)
     stop_event.set()
     worker.join(timeout=2.0)
 
-    print("Calling StopTransmission() ...")
+
     try:
         dev.StopTransmission()
     except Exception as e:
