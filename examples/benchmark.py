@@ -37,11 +37,11 @@ sample_frequency = 5000.0     # the device sends sample_frequency frames per sec
 # (time between two ReadMultiple() calls)
 # must be greater than 1000/sample_frequency because otherwise there could be empty reads 
 # if refresh_ms could be divided by 1000/sample_frequency: the thread reads refresh_ms*sample_frequency/1000 frames on every call 
-refresh_ms = 200            
+refresh_ms = 0.1            
 
 # Maximum number of frames to read per ReadMultiple() call
 # must be greater than refresh_ms*sample_frequency/1000 because otherwise there are more frames than max_frames_per_call in the queue
-max_frames_per_call = 1500   
+max_frames_per_call = 3000   
 
 # every second the threads reads max_frames_per_call * 1000/refresh_ms frames, must be greater than sample_frequency
 
