@@ -111,7 +111,7 @@ def init_device() -> gsv86:
     # Start streaming
     try:
         dev.StartTransmission()
-        print("StartTransmission() executed – device is now streaming.")
+        print("StartTransmission() executed – device is now streaming with a data rate of", dev.readDataRate(), "Hz")
     except Exception as e:
         print(f"Error: StartTransmission() failed: {e}", file=sys.stderr)
 
@@ -166,9 +166,7 @@ def main():
     print("Time:", elapsed)
     print("Effective rate:", worker.total_samples / elapsed, "Hz")
     try:
-        print("before stop")
         dev.StopTransmission()
-        print("after stop")
     except Exception as e:
         print(f"Note: StopTransmission() reported: {e}", file=sys.stderr)
 
