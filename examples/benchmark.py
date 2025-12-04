@@ -101,8 +101,7 @@ def init_device() -> gsv86:
     print(f"Connecting to GSV-8 on {PORT} @ {BAUDRATE} baud ...")
     dev = gsv86(PORT, BAUDRATE)
 
-    baud = dev.readActiveBaudrate()
-    print("Aktive Baudrate laut Gerät:", baud, "bit/s")
+    
 
     # Set device transmission rate (if supported)
     try:
@@ -115,6 +114,8 @@ def init_device() -> gsv86:
     try:
         dev.StartTransmission()
         print("StartTransmission() executed – device is now streaming with a data rate of", dev.readDataRate(), "Hz")
+        baud = dev.readActiveBaudrate()
+        print("Aktive Baudrate laut Gerät:", baud, "bit/s")
     except Exception as e:
         print(f"Error: StartTransmission() failed: {e}", file=sys.stderr)
 

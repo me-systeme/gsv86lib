@@ -747,6 +747,20 @@ class gsv86:
 
         return next_index, type_byte, data
 
+    def debug_dump_interface_settings(self, max_index: int = 32):
+        print("Dump of ReadInterfaceSetting entries:")
+        for idx in range(max_index):
+            try:
+                next_index, type_byte, data = self.ReadInterfaceSettingRaw(idx)
+            except Exception as e:
+                # Viele Indizes werden ungültig sein – das ist normal.
+                continue
+
+            print(
+                f"idx={idx:2d}, next={next_index:2d}, "
+                f"type_byte=0x{type_byte:02X}, data=0x{data:08X} ({data})"
+            )
+
     def readActiveBaudrate(self, interface_index: int = 0):
         """
         Read active baudrate (in bit/s) via ReadInterfaceSetting(0x7B).
