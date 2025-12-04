@@ -101,7 +101,7 @@ def init_device() -> gsv86:
     print(f"Connecting to GSV-8 on {PORT} @ {BAUDRATE} baud ...")
     dev = gsv86(PORT, BAUDRATE)
 
-    
+
 
     # Set device transmission rate (if supported)
     try:
@@ -130,6 +130,8 @@ def init_device() -> gsv86:
 # -----------------------------
 def main():
     dev = init_device()
+
+    dev.debug_dump_interface_settings()
 
     stop_event = threading.Event()
     worker = ReadMultipleWorker(

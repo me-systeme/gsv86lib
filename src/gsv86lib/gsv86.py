@@ -761,34 +761,47 @@ class gsv86:
                 f"type_byte=0x{type_byte:02X}, data=0x{data:08X} ({data})"
             )
 
-    def readActiveBaudrate(self, interface_index: int = 0):
+    def readActiveBaudrate(self):
         """
-        Read active baudrate (in bit/s) via ReadInterfaceSetting(0x7B).
-
-        Returns:
-            int or None
+        Try to find a non-zero active baudrate (enum_type 4) in the
+        interface settings. Returns int baudrate or None if none found.
         """
-        # 1) Basic settings für dieses Interface holen, um Startindex der Extended-Settings zu bekommen
-        next_index, type_byte, data = self.ReadInterfaceSettingRaw(interface_index)
+        seen = set()
+        to_visit = [0, 1, 2]  # alle bekannten Interface-Indizes als Startpunkte
 
-        # next_index zeigt auf den Beginn der Extended settings
-        idx = next_index
+        best_baud = None
 
-        # 2) Extended-Einträge durchlaufen, bis Enum-Typ 4 (aktive Baudrate) gefunden ist
-        while idx != 0:
-            next_idx, type_byte, data = self.ReadInterfaceSettingRaw(idx)
+        while to_visit:
+            idx = to_visit.pop()
+            if idx in seen or idx == 0xFF:
+                continue
+            seen.add(idx)
 
-            enum_type = type_byte & 0x7F   # Bits 6:0 = Enum-Type
-            # writable_flag = bool(type_byte & 0x80)  # Bit 7 = schreibbar (hier egal)
+            try:
+                next_index, type_byte, data = self.ReadInterfaceSettingRaw(idx)
+            except Exception:
+                continue
 
-            if enum_type == 4:
-                # data ist laut Doku: "Aktive Baudrate in Bits/s"
-                return int(data)
+            enum_type = type_byte & 0x7F
+            writable  = bool(type_byte & 0x80)
 
-            idx = next_idx
+            # aktive Baudrate?
+            if enum_type == 4 and data != 0:
+                baud = int(data)
+                # einfache Heuristik:
+                # - nimm schreibbare Einträge, falls vorhanden
+                # - sonst irgendeinen ersten gültigen
+                if best_baud is None:
+                    best_baud = baud
+                elif writable and best_baud is not None:
+                    best_baud = baud
 
-        # Kein Baudrate-Eintrag gefunden
-        return None
+            # verkettete Liste weiterverfolgen
+            if next_index not in seen and next_index != 0:
+                to_visit.append(next_index)
+
+        return best_baud
+
 
     def isSixAxisMatrixActive(self):
         '''
