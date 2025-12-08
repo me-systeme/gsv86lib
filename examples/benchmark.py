@@ -23,7 +23,7 @@ import threading
 from gsv86lib import gsv86
 
 # -----------------------------
-# Configuration
+# Configuratio
 # -----------------------------
 
 # Adjust the serial port!
