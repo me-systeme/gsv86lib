@@ -62,6 +62,7 @@ class FrameRouter(threading.Thread):
         self.lastMesswert = _lastMesswert
         self.gsv6 = gsv6Lib
         self.running = False
+        self._log = logging.getLogger('gsv8.FrameRouter')
 
         self.messFrameEventHandler = MessFrameHandler(self.lastMesswert, self.messwertRotatingQueue, self.gsv6)
         # self.antwortFrameEventHandler = AntwortFrameHandler(self.gsv6, self.antwortQueue, self.messFrameEventHandler)
@@ -74,7 +75,8 @@ class FrameRouter(threading.Thread):
         FrameRouter.lock.acquire()
         self.running = True
         FrameRouter.lock.release()
-        logging.getLogger('gsv8.FrameRouter').info('started')
+        if self._log.isEnabledFor(logging.INFO):
+            self._log.info('started')
 
         # enter rooter loop
         while self.running:
@@ -86,22 +88,26 @@ class FrameRouter(threading.Thread):
             except Queue.Empty:
                 pass
             else:
-                logging.getLogger('gsv8.FrameRouter').debug('new Frame: ' + newFrame.toString())
+                if self._log.isEnabledFor(logging.DEBUG):
+                    self._log.debug('new Frame: ' + newFrame.toString())
                 if newFrame.getFrameType() == 0:
                     # MesswertFrame
-                    logging.getLogger('gsv8.FrameRouter').debug('Messwert erhalten')
+                    if self._log.isEnabledFor(logging.DEBUG):
+                        self._log.debug('Messwert erhalten')
                     self.messFrameEventHandler.computeFrame(newFrame)
                 elif newFrame.getFrameType() == 1:
-                    logging.getLogger('gsv8').debug("Antwort eralten.")
+                    if self._log.isEnabledFor(logging.DEBUG):
+                        self._log.debug("Antwort erhalten.")
                     # AntwortFrame
                     # self.antwortFrameEventHandler.computeFrame(newFrame)
                     self.antwortQueue.put(newFrame)
                 else:
                     # error
-                    logging.getLogger('gsv8.FrameRouter').debug(
-                        'nothing to do with an FrameType != Messwert/Antwort')
+                    if self._log.isEnabledFor(logging.DEBUG):
+                        self._log.debug('nothing to do with an FrameType != Messwert/Antwort')
 
-        logging.getLogger('gsv8.FrameRouter').debug('exit')
+        if self._log.isEnabledFor(logging.DEBUG):
+            self._log.debug('exit')
 
     def stop(self):
         FrameRouter.lock.acquire()

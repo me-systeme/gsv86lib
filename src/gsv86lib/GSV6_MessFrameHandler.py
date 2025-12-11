@@ -48,6 +48,7 @@ __author__ = 'Dennis Rump'
 
 import logging
 import time
+import numpy as np
 
 
 class MessFrameHandler():
@@ -74,16 +75,15 @@ class MessFrameHandler():
         Die Methode computeFrame erhält einen vollständigen Frame als basicFrameType und extrahiert die Messwerte der einzelnen Kanäle
         '''
         timestamp = time.perf_counter()
-        measuredValues = bytearray(frame.getPayload())
-        values = self._convert_to_float(measuredValues)
-        values_tuple = tuple(values)
+        measuredValues = frame.getPayload()        # returns bytes/bytearray
+        values = np.frombuffer(measuredValues, dtype=">f4") # float32 view, no copy
 
         # Flags
         inputOverload = frame.isMesswertInputOverload()
         sixAxisError = frame.isMesswertSixAchsisError()
 
         # Compact measurement data tuple
-        measureData = (timestamp, values_tuple, inputOverload, sixAxisError)
+        measureData = (timestamp, values, inputOverload, sixAxisError)
         
         # Push to queue and update last value
         self._queue_append(measureData)
