@@ -102,7 +102,6 @@ class GSV6_seriall_lib:
         length = len(data)
         if not ((length >= 4) and (length % 4) == 0):
             raise GSV6_ConversionError_Exception('uint32_t')
-            return
 
         # I	= unsigned int; Python-Type: integer, size:4
         return unpack('>' + str(int(length / 4)) + "I", data)
@@ -134,46 +133,6 @@ class GSV6_seriall_lib:
         # > = Big-Endian; B	= uint8; Python-Type: int, size:4 -> 1
         return pack('>I', data)
 
-    def convertIntToBytes(self, data):
-        # > = Big-Endian; f	= float; Python-Type: float, size:4
-        return bytearray(pack('>I', data))
-
-    def convertToString(self, data):
-        length = len(data)
-        if not length >= 1:
-            raise GSV6_ConversionError_Exception('string')
-            return
-
-        # s	= char[]; Python-Type: strng, size:*
-        return unpack('>' + str(length) + 's', data)
-
-    def buildGetInterface(self, uebertragung=None):
-        if uebertragung is None:
-            return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('GetInterface'), [0x00])
-        elif uebertragung:
-            return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('GetInterface'), [0x02])
-        else:
-            return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('GetInterface'), [0x01])
-
-    def buildReadAoutScale(self, channelNo):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('ReadAoutScale'), [channelNo])
-
-    def buildWriteAoutScale(self, channelNo, AoutScale):
-        data = bytearray([channelNo])
-        data.extend(AoutScale)
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('WriteAoutScale'), data)
-
-    def buildReadZero(self, channelNo):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('ReadZero'), [channelNo])
-
-    def buildWriteZero(self, channelNo, zero):
-        data = bytearray([channelNo])
-        data.extend(zero)
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('WriteZero'), data)
-
-    def buildReadUserScale(self, channelNo):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('ReadUserScale'), [channelNo])
-
     def buildWriteUserScale(self, channelNo, userScale):
         data = bytearray([channelNo])
         data.extend(userScale)
@@ -185,32 +144,6 @@ class GSV6_seriall_lib:
     def buildStopTransmission(self):
         return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('StopTransmission'))
 
-    def buildGetUnitText(self, slot):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('GetUnitText'), [
-            slot])
-
-    def buildSetUnitText(self, text, slot=0):
-        if slot <= 0 or slot > 1:
-            data = bytearray([0x00, 0x00])
-        else:
-            data = bytearray([0x01, 0x00])
-        data.extend(bytearray(text.encode('ascii', 'replace')))
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('SetUnitText'), data)
-
-    def buildGetUnitNo(self, channelNo):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('GetUnitNo'), [channelNo])
-
-    def buildWriteUnitNo(self, channelNo, unitNo):
-        data = bytearray([channelNo])
-        data.append(unitNo)
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('SetUnitNo'), data)
-
-    def buildGetSerialNo(self):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('GetSerialNo'))
-
-    def buildGetDeviceHours(self, slot=0):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('GetDeviceHours'), [slot])
-
     def buildGetDataRate(self):
         return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('ReadDataRate'))
 
@@ -218,46 +151,18 @@ class GSV6_seriall_lib:
         #dataRate = str(dataRate)
         return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('WriteDataRate'), dataRate)
 
-    def buildWriteSaveAll(self, slot=0):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('SaveAll'), [slot])
-
     def buildWriteSetZero(self, channelNo):
         return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('SetZero'), [channelNo])
-
-    def buildgetFirmwareVersion(self):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('GetFirmwareVersion'))
-
-    def buildReadUserOffset(self, channelNo):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('ReadUserOffset'), [channelNo])
-
-    def buildWriteUserOffset(self, channelNo, userOffset):
-        data = bytearray([channelNo])
-        data.extend(userOffset)
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('WriteUserOffset'), data)
 
     def buildReadInputType(self, channelNo, sensindex=0x00):
         #data = bytearray([self.convertUInt8ToBytes(channelNo), self.convertUInt8ToBytes(sensindex)])
         data = bytearray([channelNo, sensindex])
         return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('GetInputType'), data)
 
-    def buildWriteInputTypeGSV6(self, channelNo, sensIndex, inputType, isGSV_6=True):
-        if isGSV_6:
-            channelNo = 0
-        data = bytearray([channelNo,])
-        data.extend(inputType)
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('MEwriteInputRange'), data)
-
     #def buildSetInputTypeGSV8(self, channelNo, sensIndex, inputType):
     def buildSetInputTypeGSV8(self, channelNo, inputType):
         data = bytearray([channelNo, inputType])
         return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('SetInputType'), data)
-
-    def buildSetMEid(self, minor):
-        magicCode = bytearray([0x4D, 0x45, 0x69, minor])
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('MEsetID'), magicCode)
-
-    def buildGetTXMode(self, index):
-        return self.encode_anfrage_frame(anfrage_code_to_shortcut.get('SetTXMode'), [index])
 
     def buildSetTXMode(self, index, mode):
         data = bytearray([index])
@@ -266,14 +171,6 @@ class GSV6_seriall_lib:
 
     def buildSetTXModeToFloat(self):
         data = bytearray([0x00, 0x10])
-        return self.buildSetTXMode(1, data)
-
-    def buildSetTXModeToInt32(self):
-        data = bytearray([0x00, 0x04])
-        return self.buildSetTXMode(1, data)
-
-    def buildSetTXModeToInt16(self):
-        data = bytearray([0x00, 0x01])
         return self.buildSetTXMode(1, data)
 
     def buildGetValue(self):

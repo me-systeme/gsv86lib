@@ -52,9 +52,7 @@ __author__ = 'Dennis Rump'
 #
 ###############################################################################
 
-from gsv86 import gsv86
-import signal
-import sys
+from gsv86lib import gsv86
 
 if __name__ == '__main__':
     running = True

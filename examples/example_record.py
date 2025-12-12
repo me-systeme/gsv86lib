@@ -53,8 +53,7 @@ __author__ = 'Robert bremsat & Dennis Rump'
 #
 ###############################################################################
 
-from gsv86 import gsv86
-import sys
+from gsv86lib import gsv86
 
 if __name__ == '__main__':
     # construct device

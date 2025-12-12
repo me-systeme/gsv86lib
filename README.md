@@ -48,17 +48,20 @@ pip install git+https://github.com/me-systeme/gsv86lib.git
 ## Basic Usage
 
 ```python
+import time
 from gsv86lib import gsv86
 
 # Open GSV-8 device on given serial port
 # Example: "COM5" on Windows, "/dev/ttyACM0" on Linux
-dev = gsv86("COM5", 230400)
+dev = gsv86("COM3", 115200)
 
 # Optional: configure data rate (Hz)
 dev.writeDataRate(50.0)
 
 # Start continuous transmission
 dev.StartTransmission()
+
+time.sleep(0.2)
 
 # Read a single measurement frame
 measurement = dev.ReadValue()

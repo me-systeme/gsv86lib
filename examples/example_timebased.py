@@ -51,7 +51,7 @@ __author__ = 'Robert bremsat & Dennis Rump'
 #
 ###############################################################################
 
-from gsv86 import gsv86
+from gsv86lib import gsv86
 from datetime import datetime
 
 if __name__ == '__main__':
@@ -62,16 +62,16 @@ if __name__ == '__main__':
     # dev1 = gsv86("COM26", 115200)
     # dev1 = gsv86("COM26", 115200)
 
-    print "test: " + ' '.join(format(x, '02x') for x in bytearray(dev1.isPinHigh(1)))
+    print("test: " + ' '.join(format(x, '02x') for x in bytearray(dev1.isPinHigh(1))))
 
     # einen eine Messung anstoßen
     measurement = dev1.ReadValue()
-    print 'Kanal 1: {}'.format(measurement.getChannel1())
-    print measurement.toString()
+    print('Kanal 1: {}'.format(measurement.getChannel1()))
+    print(measurement.toString())
 
     measurement2 = dev1.ReadValue()
-    print 'Kanal 1: {}'.format(measurement2.getChannel1())
-    print measurement2.toString()
+    print('Kanal 1: {}'.format(measurement2.getChannel1()))
+    print(measurement2.toString())
 
     #dev1.writeDataRate(100.0)
     '''
