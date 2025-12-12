@@ -48,9 +48,6 @@ __author__ = 'Dennis Rump'
 # Interpret the GSV6 Seriell Kommunikation
 
 from .GSV_Exceptions import *
-import logging
-from . import GSV6_ErrorCodes
-from . import GSV6_BasicFrameType
 from struct import *
 from .GSV6_AnfrageCodes import anfrage_code_to_shortcut
 import threading
@@ -76,130 +73,6 @@ class GSV6_seriall_lib:
         self.cachedConfig['UserOffset'] = {}
         self.cachedConfig['InputType'] = {}
 
-    def _normalize_minor(self, minor):
-        # Zahlen als String speichern, alles andere unverändert
-        if isinstance(minor, (int, float, complex)):
-            return str(minor)
-        return minor
-
-    def addConfigToCache(self, major, minor=None, value=None):
-        """
-        Store a value in the cache under major/minor.
-        If minor is None, major is used as minor key.
-        """
-
-        # Für Abwärtskompatibilität: alte Signatur (major, value)
-        if value is None:
-            # Aufruf war addConfigToCache(major, value)
-            value = minor
-            minor = major
-        
-        minor = self._normalize_minor(minor)
-
-        with self.cacheLock:
-            try:
-                if major in self.cachedConfig:
-                    self.cachedConfig[major][minor] = value
-                    return True
-                else:
-                    logging.getLogger('serial2ws.WAMP_Component.router.GSV6_seriall_lib').warning(
-                        "cache error, unknown major key %s", major
-                    )
-                    return False
-            except Exception:
-                logging.getLogger('serial2ws.WAMP_Component.router.GSV6_seriall_lib').warning(
-                    "cache error, can't write %s", major
-                )
-                return False
-
-    def markChachedConfiAsDirty(self, major, minor):
-        """
-        Remove a cached config entry (mark as dirty).
-        If minor is None, major is used as minor key.
-        """
-        if minor is None:
-            minor = major
-        minor = self._normalize_minor(minor)
-
-        with self.cacheLock:
-            try:
-                if (
-                    major in self.cachedConfig and
-                    minor in self.cachedConfig[major]
-                ):
-                    del self.cachedConfig[major][minor]
-                    return True
-                return False
-            except Exception:
-                logging.getLogger('serial2ws.WAMP_Component.router.GSV6_seriall_lib').warning(
-                    "cache error, remove %s from cache!", major
-                )
-                return False
-
-    def getCachedProperty(self, major, minor):
-
-        minor = self._normalize_minor(minor)
-
-        with self.cacheLock:
-            try:
-                if (
-                    major in self.cachedConfig and
-                    minor in self.cachedConfig[major]
-                ):
-                    return self.cachedConfig[major][minor]
-                return None
-            except Exception:
-                logging.getLogger('serial2ws.WAMP_Component.router.GSV6_seriall_lib').warning(
-                    "cache error, can't get cachedConfig!"
-                )
-                return None
-
-    def getCachedConfig(self):
-
-        with self.cacheLock:
-            try:
-                # flache Kopie reicht in der Regel
-                return dict(self.cachedConfig)
-            except Exception:
-                logging.getLogger('serial2ws.WAMP_Component.router.GSV6_seriall_lib').warning(
-                    "cache error, can't get cachedConfig!"
-                )
-                return None
-
-    # ist doch so qutasch!!!
-    def selectFrameType(self, firstByte):
-        if 0 == firstByte:
-            # Messwert Frame
-            return 0
-        elif 1 == firstByte:
-            # Antwort
-            return 1
-        elif 2 == firstByte:
-            # Anfrage
-            return 2
-        else:
-            # rise error
-            raise GSV6_serial_lib_errors('FrameType not selectable.')
-
-    def stripSerialPreAndSuffix(self, data):
-        if (data[-1] == 0x85) and (data[0] == 0xAA):
-            del data[-1]
-            del data[0]
-            return data
-        else:
-            raise GSV6_Communication_Error('Serial Input from formart (Prefix und suffix).')
-
-    def checkSerialPreAndSuffix(self, data):
-        if (data[-1] == 0x85) and (data[0] == 0xAA):
-            return 0  # eigentlich nicht nötig, da ja die Exception ausgewertet wird, falls Sie kommt
-        else:
-            raise GSV6_Communication_Error('Serial Input from formart (Prefix und suffix).')
-
-    '''
-    !deprecated!
-    def decode_status(self, data):
-        inData = bytes(data)
-    '''
 
     def encode_anfrage_frame(self, kommando, kommando_para=[]):
         # 0xAA=SyncByte; 0x50=Anfrage,Seriell,Length=0
@@ -213,95 +86,17 @@ class GSV6_seriall_lib:
         result.append(0x85)
         return result
 
-    def decode_antwort_frame(self, data):
-
-        inData = bytearray(data)
-        # first of all, check data length for minimal length
-        if len(inData) < 2:
-            raise GSV6_Communication_Error('AntwortFrame too short.')
-
-        data_length = -1
-
-        # check FrameType
-        if (inData[0] & 0xC0) != 0x40:
-            raise GSV6_Communication_Error('Diffrent FrameType detected, Lib selected AntwortFrame.')
-        if not (inData[0] & 0x30 == 0x10):
-            raise GSV6_Communication_Error('Diffrent Interface detected, it has to be seriall.')
-
-        data_length = int(inData[0] & 0x0F)
-        logging.debug('AntwortFrame Length: ' + str(data_length))
-
-        if inData[1] != 0x00:
-            err_code = GSV6_ErrorCodes.error_code_to_error_shortcut.get(inData[1], 'Error Code not found!.')
-            err_msg = GSV6_ErrorCodes.error_codes_to_messages_DE.get(inData[1], 'Error Code not found!.')
-            raise GSV6_ReturnError_Exception(err_code, err_msg)
-
-        # Bis heri keine Fehler aufgetreten, also daten in BasicFrame einbringen für die weitere verarbeitung
-        return GSV6_BasicFrameType.BasicFrame(inData)
-
-    def decode_messwert_frame(self, data):
-
-        inData = bytearray(data)
-        # first of all, check data length for minimal length
-        if len(
-                inData) < 3:  # da channel 1 mit 0 angegeben wird, muss mindestens ein channel angegeben werden. Gibt es eine reihnfolge oder wir immer nur ein channel übertragen?
-            raise GSV6_Communication_Error('MesswertFrame too short.')
-
-        transmitted_cahnnels = -1
-
-        # check FrameType
-        if (inData[0] & 0xC0) != 0x00:
-            raise GSV6_Communication_Error('Diffrent FrameType detected, Lib selected MesswertFrame.')
-        if not (inData[0] & 0x30 == 0x10):
-            raise GSV6_Communication_Error('Diffrent Interface detected, it has to be seriall.')
-
-        transmitted_cahnnels = int(inData[0] & 0x0F)
-
-        # Bis heri keine Fehler aufgetreten, also daten in BasicFrame einbringen für die weitere verarbeitung
-        return GSV6_BasicFrameType.BasicFrame(inData)
-
-    # for all conversion see type def in Pytho 2.7
-    def convertToUint8_t(self, data):
-        # B	= unsigned char; Python-Type: integer, size:1
-        return unpack('>B', data)
-
-    def convertStrToUint8_t(self, data):
-        length = len(data)
-        if not length >= 1:
-            raise GSV6_ConversionError_Exception('uint8_t')
-            return
-
-        # B	= unsigned char; Python-Type: integer, size:1
-        return unpack('>' + str(int(length)) + "B", data)
 
     def convertToUint16_t(self, data):
         # H	= unsigned short; Python-Type: integer, size:2
         return unpack('>H', data)
 
-    def convertStrToUint16_t(self, data):
-        length = len(data)
-        if not ((length >= 2) and (length % 2) == 0):
-            raise GSV6_ConversionError_Exception('uint16_t')
-            return
-
-        # H	= unsigned short; Python-Type: integer, size:2
-        return unpack('>' + str(length / 2) + "H", data)
 
     def convertToUint24_t(self, data):
         tmpData = bytearray([0x00])
         tmpData.extend(data)
         # I	= unsigned int; Python-Type: integer, size:4
         return unpack('>I', tmpData)
-
-    def convertToS24(self, data):
-        raise GSV6_ConversionError_Exception('S24 not yet supported')
-        length = len(data)
-        if not ((length >= 3) and (length % 3) == 0):
-            raise GSV6_ConversionError_Exception('S24')
-            return
-
-            # ?	= ?; Python-Type: integer, size:?
-            # return unpack(str(length/3)+"?", data)
 
     def convertToUint32_t(self, data):
         length = len(data)
@@ -313,31 +108,10 @@ class GSV6_seriall_lib:
         return unpack('>' + str(int(length / 4)) + "I", data)
         #return unpack('>' + "I", data)
 
-    def convertToSint32_t(self, data):
-        length = len(data)
-        if not ((length >= 4) and (length % 4) == 0):
-            raise GSV6_ConversionError_Exception('int32_t')
-            return
-
-        # i	= int; Python-Type: integer, size:4
-        return unpack('>' + str(length / 4) + "i", data)
-
-    # decimal can help here
-    def convertToS7_24(self, data):
-        raise GSV6_ConversionError_Exception('S7.24 not yet supported')
-        length = len(data)
-        if not ((length >= 4) and (length % 4) == 0):
-            raise GSV6_ConversionError_Exception('S7.24')
-            return
-
-        # ?	= ?; Python-Type: integer, size:?
-        return unpack('>' + str(length / 4) + "f", data)
-
     def convertToFloat(self, data):
         length = len(data)
         if not ((length >= 4) and (length % 4) == 0):
             raise GSV6_ConversionError_Exception('float')
-            return
 
         # > = Big-Endian; f	= float; Python-Type: float, size:4
         #return unpack('>' + bytearray(length / 4) + "f", data)
@@ -348,15 +122,6 @@ class GSV6_seriall_lib:
         # > = Big-Endian; f	= float; Python-Type: float, size:4
         return bytearray(pack('>f', data))
 
-    def convertFloatsToBytes(self, data):
-        length = len(data)
-        if not (length >= 1):
-            raise GSV6_ConversionError_Exception('float')
-            return
-        
-        # > = Big-Endian; f	= float; Python-Type: float, size:4
-        return bytearray(pack('>%sf' % len(data), data))
-
     def convertUInt8ToBytes(self, data):
         # > = Big-Endian; B	= uint8; Python-Type: int, size:4 -> 1
         return pack('>B', data)
@@ -364,10 +129,6 @@ class GSV6_seriall_lib:
     def convertUInt16ToBytes(self, data):
         # > = Big-Endian; B	= uint8; Python-Type: int, size:4 -> 1
         return pack('>H', data)
-
-    def convertUInt24ToBytes(self, data):
-        # > = Big-Endian; B	= uint8; Python-Type: int, size:4 -> 1
-        return pack('>I', data)[1:]
 
     def convertUInt32ToBytes(self, data):
         # > = Big-Endian; B	= uint8; Python-Type: int, size:4 -> 1
@@ -385,51 +146,6 @@ class GSV6_seriall_lib:
 
         # s	= char[]; Python-Type: strng, size:*
         return unpack('>' + str(length) + 's', data)
-
-    def decodeGetInterface(self, data):
-        if len(data) < 3:
-            raise GSV6_DecodeError_Exception(sys._getframe().f_code.co_name, 'Payload to short.')
-
-        result = {}
-
-        # 0x3F == <5:0>
-        geraete_model = (data[0] & 0x3F)
-        if geraete_model == 0x06:
-            result['geraete_model'] = 'GSV-6'
-        elif geraete_model == 0x08:
-            result['geraete_model'] = 'GSV-8'
-        else:
-            result['geraete_model'] = 'Unbekannt'
-
-        # Messwert-frame-Info
-        result['anzahl_messwert-frame-objekte'] = ((data[1] & 0xF0) >> 4)
-        if ((data[1] & 0x08) >> 3) == 1:
-            result['messuebertragung'] = True
-        else:
-            result['messuebertragung'] = False
-        if (data[1] & 0x07) == 1:
-            result['messwertdatentype'] = 'int16'
-        elif (data[1] & 0x07) == 2:
-            result['messwertdatentype'] = 'int24'
-        elif (data[1] & 0x07) == 3:
-            result['messwertdatentype'] = 'float32'
-        else:
-            result['messwertdatentype'] = 'unkown'
-
-        # Schreibschutz
-        if ((data[2] & 0x80) >> 7) == 1:
-            result['schnittstellen_spezifischer_schreibschutz'] = True
-        else:
-            result['schnittstellen_spezifischer_schreibschutz'] = False
-        if ((data[2] & 0x40) >> 6) == 1:
-            result['genereller_schreibschutz'] = True
-        else:
-            result['genereller_schreibschutz'] = False
-
-        # Deskriptorzahl
-        result['deskriptorzahl'] = data[3]
-
-        return result
 
     def buildGetInterface(self, uebertragung=None):
         if uebertragung is None:

@@ -73,6 +73,7 @@ class MessFrameHandler():
         self.recordPrefix = ''
         self.doRecording = False
         self.messCounter = 0
+        self._log = logging.getLogger('gsv8.FrameRouter.MessFrameHandler')
 
     def computeFrame(self, frame):
         '''
@@ -124,7 +125,8 @@ class MessFrameHandler():
         measureData = [timestamp, measuredValues, inputOverload, sixAxisError]
         self.messwertRotatingQueue.append(measureData)
         self.lastMesswert.setVar(measureData)
-        logging.getLogger('gsv8.FrameRouter.MessFrameHandler').debug('Received MessFrame added.')
+        if self._log.isEnabledFor(logging.DEBUG):
+            self._log.debug('Received MessFrame added.')
 
     def startRecording(self, filePath, prefix):
         if(self.doRecording):
@@ -135,7 +137,7 @@ class MessFrameHandler():
         if self.csvpath[-1] != '/':
             self.csvpath += '/'
         if not os.path.exists(self.csvpath):
-            raise GSV_FilepathException(file, 'Bad Filepath; Filepath doesn\'t exists')
+            raise GSV_FilepathException(filePath, 'Bad Filepath; Filepath doesn\'t exists')
         else:
             # set timestamp
             self.startTimeStampStr = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
