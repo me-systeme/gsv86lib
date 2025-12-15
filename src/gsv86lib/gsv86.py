@@ -72,10 +72,10 @@ import sys
 from twisted.internet.error import ReactorAlreadyInstalledError
 '''
 
+logger = logging.getLogger(__name__)
+
 # load default Logging config
 from .GSV_Exceptions import GSV6_ConversionError_Exception, GSV_CommunicationException
-
-logging.basicConfig()
 
 useTwisted = False
 
@@ -132,8 +132,7 @@ class gsv86:
     transmissionIsRunning = True
 
     def __init__(self, port, baudrate):
-        logging.getLogger('gsv86').setLevel(logging.INFO)
-        logging.getLogger('gsv86').info('Start with config: Serialport: {}; Baudrate: {};'.format(port, baudrate))
+        logger.info("Start with config: Serialport: %s; Baudrate: %s;", port, baudrate)
 
         '''
         if (useTwisted):
@@ -186,9 +185,9 @@ class gsv86:
 
         result = self.StopTransmission()
         if (result[0] == 0x00):
-            logging.getLogger('gsv86').info('GSV8/6 detected and stopped.')
+            logger.info("GSV8/6 detected and stopped.")
         else:
-            logging.getLogger('gsv86').critical('some error occurred; GSV answer: ' + str(result))
+            logger.critical("Some error occurred; GSV answer: %s", result)
 
     def __del__(self):
         if (not useTwisted):

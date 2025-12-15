@@ -11,7 +11,8 @@ Typical usage in your projects:
     from gsv86lib import SomeClassOrFunction   # if defined in gsv86.py
 
 """
-
+import logging
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 # Re-export everything from gsv86.py that does not start with "_"
 from .gsv86 import *  # noqa: F401,F403
 

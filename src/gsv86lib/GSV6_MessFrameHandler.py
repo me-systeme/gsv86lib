@@ -131,7 +131,8 @@ class MessFrameHandler():
     def startRecording(self, filePath, prefix):
         if(self.doRecording):
             return
-        logging.getLogger('gsv8.FrameRouter.MessFrameHandler').info('Messung gestartet.')
+        if self._log.isEnabledFor(logging.INFO):
+            self._log.info('Messung gestartet.')
         # check file path
         self.csvpath = filePath
         if self.csvpath[-1] != '/':
@@ -146,7 +147,8 @@ class MessFrameHandler():
 
     def stopRecording(self):
         if self.doRecording:
-            logging.getLogger('gsv8.FrameRouter.MessFrameHandler').info('Messung gestopt.')
+            if self._log.isEnabledFor(logging.INFO):
+                self._log.info('Messung gestoppt.')
             if (len(self.messCSVDictList) > 0):
                 self._writeCSVdataNow()
             del self.messCSVDictList[:]
