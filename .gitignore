@@ -1,3 +1,6 @@
 __pycache__/
 
 .venv/
+
+dist/*
+gsv86lib.egg-info

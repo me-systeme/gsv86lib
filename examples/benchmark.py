@@ -29,10 +29,9 @@ import threading
 # SRC = os.path.join(ROOT, "src")
 # # src zum Import-Pfad hinzufügen
 # sys.path.insert(0, SRC)
+# from gsv86lib.gsv86 import gsv86
 
-from gsv86lib.gsv86 import gsv86
-
-# from gsv86lib import gsv86
+from gsv86lib import gsv86
 
 # -----------------------------
 # Configuration

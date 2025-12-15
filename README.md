@@ -33,11 +33,38 @@ Typical use cases:
 
 ## Installation
 
-`gsv86lib` is not published on PyPI.  
-Install it directly from the Git repository:
+`gsv86lib` is published on PyPI. So you can install it with
+
+```bash
+pip install gsv86lib
+```
+ 
+Or you can install it directly from the Git repository:
 
 ```bash
 pip install git+https://github.com/me-systeme/gsv86lib.git
+```
+
+### Updating to a New Version
+
+When a new version is released, make sure to update explicitly:
+
+```bash
+pip install --upgrade gsv86lib
+```
+If you still see old behavior after upgrading, pip may be using cached wheels.
+In this case, force a clean install:
+
+```bash
+pip install --upgrade --no-cache-dir gsv86lib
+```
+
+### Verify Installed Version
+
+You can verify the installed version with:
+
+```bash
+pip show gsv86lib
 ```
 
 ## Requirements
@@ -80,6 +107,36 @@ dev.StopTransmission()
 You can build more complex applications on top of this, such as real-time
 visualization, logging, or integration into test benches.
 
+## Logging
+
+`gsv86lib` uses Python’s built-in `logging` module.
+By default, the library does **not** emit any log output unless explicitly
+enabled by the user.
+
+This design ensures maximum performance, even at high data rates
+(e.g. 6–12 kHz streaming).
+
+### Enable Logging
+
+To enable debug logging for `gsv86lib`, configure the logger:
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+For info loggings replace `DEBUG` by `INFO`.
+
+### Performance Note
+
+All debug log statements inside `gsv86lib` are guarded by:
+
+```python
+if logger.isEnabledFor(logging.DEBUG):
+    logger.debug(...)
+``` 
+
+This avoids unnecessary string formatting and keeps overhead minimal,
+even at very high sampling rates.
 
 ## API Overview
 
@@ -139,3 +196,13 @@ The public entry point for user code is `gsv86lib.gsv86`.
 This package is derived from the original ME-Systeme GSV-8 Python library.
 Please refer to the license information provided by ME-Systeme and add your
 own license information here as appropriate for your project.
+
+## Notes on High-Rate Streaming
+
+For high sampling rates (≥ 6 kHz), it is recommended to:
+
+- Disable console logging
+- Fetch data frequently using `ReadMultiple()`
+
+`gsv86lib` is designed to support high-rate data acquisition when used with
+appropriate buffering and logging configuration.
