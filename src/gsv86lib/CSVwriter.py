@@ -46,7 +46,6 @@ __author__ = 'Dennis Rump'
 #
 ###############################################################################
 
-import logging
 import threading
 import os
 import csv

@@ -106,7 +106,7 @@ class GSV_CommunicationException(Exception):
 
 class GSV_FilepathException(Exception):
     def __init__(self, filepath, error_massage):
-        self.error_code = file
+        self.error_code = filepath
         self.error_massage = error_massage
 
     def __str__(self):
