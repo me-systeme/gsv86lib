@@ -5,7 +5,9 @@
 
 It is based on the original ME-Systeme Python library (`gsv8pypi_python3`) and
 repackages it as a modern Python package with a proper module namespace and
-relative imports, so it can be installed and reused across multiple projects.
+relative imports, so it can be installed and reused across multiple projects. 
+It is suitable for both standard measurement tasks and high-frequency data 
+acquisition up to **12 kHz**.
 
 Typical use cases:
 
@@ -27,13 +29,14 @@ Typical use cases:
   - Digital I/O configuration
   - Thresholds and trigger functions
   - CSV recording helpers (from original library)
+- Designed for high-frequency measurements up to **12 kHz**
 - Usable on Windows and Linux
 
 ---
 
 ## Installation
 
-`gsv86lib` is published on PyPI. So you can install it with
+`gsv86lib` is published on PyPI (https://pypi.org/project/gsv86lib/). So you can install it with
 
 ```bash
 pip install gsv86lib
@@ -106,6 +109,30 @@ dev.StopTransmission()
 
 You can build more complex applications on top of this, such as real-time
 visualization, logging, or integration into test benches.
+
+## High-Frequency Measurements (up to 12 kHz)
+
+`gsv86lib` is designed and tested for **high-frequency data acquisition**
+with sampling rates of up to **12,000 Hz**.
+
+To achieve reliable performance at high data rates, the library focuses on:
+
+- Efficient frame parsing
+- Minimal overhead in the data path
+- Thread-safe buffering of incoming measurement frames
+- Optional logging that can be fully disabled
+
+### Recommendations for High-Rate Operation
+
+For sampling rates ≥ 6 kHz (and especially near 12 kHz), it is recommended to:
+
+- Disable or minimize logging output
+- Use `ReadMultiple()` to fetch batches of frames efficiently
+- Fetch data frequently to avoid internal buffer overflows
+
+When used with proper configuration, `gsv86lib` is suitable for
+real-time measurements, monitoring, and data logging even at very high
+sampling frequencies. An example is implemented in `\examples\benchmark.py`.
 
 ## Logging
 
@@ -196,13 +223,3 @@ The public entry point for user code is `gsv86lib.gsv86`.
 This package is derived from the original ME-Systeme GSV-8 Python library.
 Please refer to the license information provided by ME-Systeme and add your
 own license information here as appropriate for your project.
-
-## Notes on High-Rate Streaming
-
-For high sampling rates (≥ 6 kHz), it is recommended to:
-
-- Disable console logging
-- Fetch data frequently using `ReadMultiple()`
-
-`gsv86lib` is designed to support high-rate data acquisition when used with
-appropriate buffering and logging configuration.
