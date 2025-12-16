@@ -104,7 +104,7 @@ class BasicFrame:
         elif type == 3:
             return 'float32'
         else:
-            return 'unkown'
+            return 'unknown'
 
     def getAntwortErrorCode(self):
         return self.statusbyte

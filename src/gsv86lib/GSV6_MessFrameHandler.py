@@ -81,7 +81,18 @@ class MessFrameHandler():
         '''
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         measuredValues = bytearray(frame.getPayload())
-        values = self.gsv_lib.convertToFloat(measuredValues)
+        dtype = frame.getMesswertDataTypeAsString()
+
+        if dtype == "float32":
+            values = self.gsv_lib.convertToFloat(measuredValues)
+
+        elif dtype == "int16":
+            # big-endian signed int16, n Werte:
+            values = self.gsv_lib.convertInt16PayloadToNormFloat(measuredValues)  
+
+        else:
+            raise ValueError(f"Unsupported datatype from device: {dtype} (status=0x{frame.getStatusByte():02X})")
+
 
         measuredValues = {}
         counter = 0

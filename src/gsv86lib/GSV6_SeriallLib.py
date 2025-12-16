@@ -107,6 +107,21 @@ class GSV6_seriall_lib:
         return unpack('>' + str(int(length / 4)) + "I", data)
         #return unpack('>' + "I", data)
 
+    def convertInt16PayloadToNormFloat(self, data):
+        length = len(data)
+        if not ((length >= 2) and (length % 2) == 0):
+            raise GSV6_ConversionError_Exception('int16_t')
+
+        count = length // 2
+        raw = unpack('>' + str(count) + 'H', data)  # uint16 big-endian
+
+        # step 1: binary offset -> signed
+        signed = (v - 0x8000 for v in raw)
+
+        # step 2: normalize with 1.05 / 2^15
+        scale = 1.05 / (2 ** 15) *2  # for 2mV/V, should be configurable
+        return tuple(x * scale for x in signed)
+
     def convertToFloat(self, data):
         length = len(data)
         if not ((length >= 4) and (length % 4) == 0):
