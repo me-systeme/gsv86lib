@@ -104,7 +104,9 @@ import time
 from gsv86lib import gsv86
 
 # Open GSV-8 device on given serial port
-# Example: "COM5" on Windows, "/dev/ttyACM0" on Linux
+# Example: "COM3" on Windows, "/dev/ttyACM0" on Linux
+# This is just an example. You need to set the COM port 
+# and Baudrate depending on your device. 
 dev = gsv86("COM3", 115200)
 
 # Optional: configure data rate (Hz)
