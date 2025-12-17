@@ -1,7 +1,11 @@
 # gsv86lib
 
+[![PyPI version](https://img.shields.io/pypi/v/gsv86lib.svg)](https://pypi.org/project/gsv86lib/)
+[![Downloads](https://img.shields.io/pypi/dm/gsv86lib.svg)](https://pypistats.org/packages/gsv86lib)
+[![License](https://img.shields.io/pypi/l/gsv86lib.svg)](LICENSE)
+
 `gsv86lib` is a Python package that provides a convenient interface to the  
-**ME-Systeme GSV-8** measurement amplifier via serial communication.
+**ME-Systeme GSV-8 and GSV-6** measurement amplifier via serial communication.
 
 It is based on the original ME-Systeme Python library (`gsv8pypi_python3`) and
 repackages it as a modern Python package with a proper module namespace and
@@ -22,7 +26,7 @@ Typical use cases:
 
 - Pure Python, no platform-specific DLLs required
 - Serial communication (USB-CDC, virtual COM port)
-- Access to the full GSV-8 feature set:
+- Access to the full GSV-8/6 feature set:
   - Measurement values for up to 8 channels
   - Data rate configuration
   - Start/Stop transmission
@@ -33,6 +37,24 @@ Typical use cases:
 - Usable on Windows and Linux
 
 ---
+
+## Project stats & maturity
+
+`gsv86lib` is a focused Python library for interfacing with ME-Systeme
+GSV-8 and GSV-6 measurement amplifiers.
+
+The project is actively maintained and distributed via PyPI.
+Download statistics are publicly available via pypistats.org 
+(https://pypistats.org/packages/gsv86lib) and provide an 
+indication of usage trends within the Python ecosystem.
+
+Please note:
+- PyPI download numbers represent package download events, not unique users
+- Automated systems (CI, testing, virtual environments) may increase counts
+
+The library is primarily intended for engineering, measurement, and
+industrial applications where reliability, transparency, and long-term
+maintainability are more important than mass adoption metrics.
 
 ## Installation
 
