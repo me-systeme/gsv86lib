@@ -15,6 +15,9 @@ from gsv86lib import gsv86
 # Example: "COM5" on Windows, "/dev/ttyACM0" on Linux
 # This is just an example. You need to set the COM port 
 # and Baudrate (here 115200) depending on your device.
+# The default configuration of devices GSV 8 and GSV 6 are:
+# GSV8: 115200
+# GSV6: 230400
 dev = gsv86("COM3", 115200)
 
 # Optional: configure data rate (Hz)
