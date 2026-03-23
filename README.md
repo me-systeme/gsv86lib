@@ -250,5 +250,3 @@ The public entry point for user code is `gsv86lib.gsv86`.
 This package is derived from the original ME-Systeme GSV-8 Python library.
 Please refer to the license information provided by ME-Systeme and add your
 own license information here as appropriate for your project.
-
-
