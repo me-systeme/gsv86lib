@@ -107,7 +107,7 @@ class GSV6_seriall_lib:
         return unpack('>' + str(int(length / 4)) + "I", data)
         #return unpack('>' + "I", data)
 
-    def convertInt16PayloadToNormFloat(self, data):
+    def convertInt16PayloadToFloat(self, data):
         length = len(data)
         if not ((length >= 2) and (length % 2) == 0):
             raise GSV6_ConversionError_Exception('int16_t')

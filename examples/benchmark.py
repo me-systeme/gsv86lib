@@ -20,18 +20,18 @@ import sys
 import time
 import threading
 
-# import logging
-# logging.basicConfig(level=logging.INFO)
+import logging
+logging.basicConfig(level=logging.INFO)
 
-# import os
-# # Projekt-Root bestimmen
-# ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-# SRC = os.path.join(ROOT, "src")
-# # src zum Import-Pfad hinzufügen
-# sys.path.insert(0, SRC)
-# from gsv86lib.gsv86 import gsv86
+import os
+# Projekt-Root bestimmen
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+SRC = os.path.join(ROOT, "src")
+# src zum Import-Pfad hinzufügen
+sys.path.insert(0, SRC)
+from gsv86lib.gsv86 import gsv86
 
-from gsv86lib import gsv86
+#from gsv86lib import gsv86
 
 # -----------------------------
 # Configuration
@@ -42,7 +42,7 @@ PORT = "COM3"          # e.g. "COM3" on Windows or "/dev/ttyACM0" on Linux
 BAUDRATE = 115200
 
 # Transmission frequency of the GSV-8 in Hz
-sample_frequency = 12000.0     # the device sends sample_frequency frames per second (so one frame every 1000/sample_frequency ms)
+sample_frequency = 100.0     # the device sends sample_frequency frames per second (so one frame every 1000/sample_frequency ms)
 
 # Sampling rate of the worker thread in milliseconds
 # (time between two ReadMultiple() calls)

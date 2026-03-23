@@ -47,6 +47,8 @@ __author__ = 'Dennis Rump'
 ###############################################################################
 
 import logging
+import time
+import numpy as np
 from datetime import datetime
 import os
 import threading
@@ -65,6 +67,12 @@ class MessFrameHandler():
         self.messwertRotatingQueue = messwertRotatingQueue
         self.lastMesswert = lastMesswert
         self.gsv_lib = gsv_lib
+
+        # Cache attributes/functions locally for faster lookup in computeFrame
+        self._queue_append = messwertRotatingQueue.append
+        self._set_last = lastMesswert.setVar
+        self._convert_to_float = gsv_lib.convertToFloat
+
         self.safeOption = False
         self.messCSVDictList = []
         self.messCSVDictList_lock = threading.Lock()
@@ -79,63 +87,27 @@ class MessFrameHandler():
         '''
         Die Methode computeFrame erhält einen vollständigen Frame als basicFrameType und extrahiert die Messwerte der einzelnen Kanäle
         '''
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-        measuredValues = bytearray(frame.getPayload())
+        timestamp = time.perf_counter()
+        measuredValues = frame.getPayload()        # returns bytes/bytearray
+
         dtype = frame.getMesswertDataTypeAsString()
-
+        self._log.info(dtype)
         if dtype == "float32":
-            values = self.gsv_lib.convertToFloat(measuredValues)
-
+            values = np.frombuffer(measuredValues, dtype=">f4") # float32 view, no copy
         elif dtype == "int16":
-            # big-endian signed int16, n Werte:
-            values = self.gsv_lib.convertInt16PayloadToNormFloat(measuredValues)  
+            values = np.frombuffer(measuredValues, dtype=">u2") # unsigned int16, Big Endian
 
-        else:
-            raise ValueError(f"Unsupported datatype from device: {dtype} (status=0x{frame.getStatusByte():02X})")
+        # Flags
+        inputOverload = frame.isMesswertInputOverload()
+        sixAxisError = frame.isMesswertSixAchsisError()
 
+        # Compact measurement data tuple
+        measureData = (timestamp, values, inputOverload, sixAxisError)
+        
+        # Push to queue and update last value
+        self._queue_append(measureData)
+        self._set_last(measureData)
 
-        measuredValues = {}
-        counter = 0
-        for f in values:
-            # there is no append/add function for Python Dictionaries
-            measuredValues['channel' + str(counter)] = f
-            counter += 1
-        if frame.isMesswertInputOverload():
-            inputOverload = True
-        else:
-            inputOverload = False
-        if frame.isMesswertSixAchsisError():
-            sixAxisError = True
-        else:
-            sixAxisError = False
-
-        if self.doRecording:
-            # handle CSVwrting
-            self.messCounter += 1
-            # add data here
-            self.messCSVDictList_lock.acquire()
-
-            tmpM = {'timestamp': timestamp}
-            for (i, value) in enumerate(values):
-                tmpM['channel'+str(i)] = value
-            self.messCSVDictList.append(tmpM)
-            '''
-            self.messCSVDictList.append(
-                {'timestamp': timestamp, 'channel0': values[0], 'channel1': values[1], 'channel2': values[2],
-                 'channel3': values[3], 'channel4': values[4], 'channel5': values[5], 'channel6': values[6],
-                 'channel7': values[7]})
-            '''
-            self.messCSVDictList_lock.release()
-            if (self.messCounter >= self.maxCacheMessCount):
-                self.messCounter = 0
-                # semaphore lock?
-                self._writeCSVdataNow()
-                del self.messCSVDictList[:]
-
-        # add new measure data to queue
-        measureData = [timestamp, measuredValues, inputOverload, sixAxisError]
-        self.messwertRotatingQueue.append(measureData)
-        self.lastMesswert.setVar(measureData)
         if self._log.isEnabledFor(logging.DEBUG):
             self._log.debug('Received MessFrame added.')
 

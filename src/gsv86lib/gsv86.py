@@ -361,9 +361,12 @@ class gsv86:
         """
         data = []
         count = 0
-
+        #inputtype = self.getInputType(0)
+        #self._gsvLib.convertInt16PayloadToFloat(measuredValues,inputtype)  
         while self._messwertRotatingQueue:
-            data.append(self._messwertRotatingQueue.popleft())
+            measuredValues = self._messwertRotatingQueue.popleft()
+            #logger.info(((measuredValues[1][1] & 0x70) >> 4))
+            data.append(measuredValues)
             count += 1
 
             if max_count is not None and count >= max_count:
