@@ -97,6 +97,27 @@ pip show gsv86lib
 - Python 3.8+
 - `pyserial` (installed automatically as dependency)
 
+## ⚠️ Measurement Data Type Support (Important Note)
+
+Currently, support for different measurement data types is not fully implemented in `gsv86lib`.
+
+While `float32` data is fully supported and recommended, the handling of other data types such as `int16` may be incomplete or lead to unexpected behavior depending on the device configuration.
+
+### Recommendation
+
+For reliable operation, it is strongly recommended to configure the device to use:
+
+- **Data type: `float32`**
+
+(e.g. via GSVmulti or device configuration tools)
+
+### Need `int16` or Other Formats?
+
+If your application requires `int16`, `int24`, or other data formats, please contact **ME-Systeme** directly.  
+We can provide guidance or support depending on your specific use case and requirements.
+
+This limitation will be addressed in future updates of the library.
+
 ## Basic Usage
 
 ```python
