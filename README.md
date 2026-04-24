@@ -160,27 +160,116 @@ visualization, logging, or integration into test benches.
 
 ## High-Frequency Measurements (up to 12 kHz)
 
-`gsv86lib` is designed and tested for **high-frequency data acquisition**
-with sampling rates of up to **12,000 Hz**.
+`gsv86lib` is designed for **continuous high-frequency data acquisition**
+with sampling rates of up to **12,000 Hz**, depending on device configuration
+and host system performance.
 
-To achieve reliable performance at high data rates, the library focuses on:
+### How Performance is Measured
 
-- Efficient frame parsing
-- Minimal overhead in the data path
-- Thread-safe buffering of incoming measurement frames
-- Optional logging that can be fully disabled
+To evaluate performance, the library provides a benchmark example:
+
+```bash
+examples/benchmark.py
+```
+
+This script:
+
+- Configures the device to a given sample rate (e.g. 500 Hz, 1000 Hz, …)
+- Starts continuous transmission
+- Uses `ReadMultiple()` in a worker thread to fetch batches of frames
+- Measures the number of frames received within a fixed time window  
+  (**starting from the first received frame**)
+
+The benchmark intentionally:
+
+- Discards the first non-empty read (synchronization phase)
+- Measures **steady-state throughput**, not startup latency
+- Uses an "effective rate" = `frames / elapsed_time`
+
+### Example Results
+
+Typical results on a standard Windows system (USB virtual COM port):
+
+| Configured Rate | Measured Frames | Time (s) | Effective Rate |
+|-----------------|----------------|----------|----------------|
+| 500 Hz          | ~4960          | ~10.0    | ~495 Hz        |
+| 1000 Hz         | ~9920          | ~10.0    | ~990 Hz        |
+
+This corresponds to an accuracy of roughly **±1%**, which is expected for
+a user-space acquisition loop.
+
+### Important Notes
+
+- The measured rate reflects **application-level throughput**, not the exact
+  device transmission timing.
+- Small deviations are caused by:
+  - OS scheduling (`time.sleep`)
+  - Python interpreter overhead
+  - Serial driver buffering
+- The first batch of received frames is **not counted**, as it may contain
+  buffered data from before the measurement window.
 
 ### Recommendations for High-Rate Operation
 
-For sampling rates ≥ 6 kHz (and especially near 12 kHz), it is recommended to:
+For sampling rates ≥ 6 kHz (and especially near 12 kHz):
 
-- Disable or minimize logging output
-- Use `ReadMultiple()` to fetch batches of frames efficiently
-- Fetch data frequently to avoid internal buffer overflows
+- Use `ReadMultiple()` instead of `ReadValue()`
+- Keep `refresh_ms` small (e.g. 1–10 ms)
+- Ensure `max_frames_per_call` is sufficiently large
+- Avoid logging or printing inside the acquisition loop
+- Process data in batches instead of per-frame
 
-When used with proper configuration, `gsv86lib` is suitable for
-real-time measurements, monitoring, and data logging even at very high
-sampling frequencies. An example is implemented in `\examples\benchmark.py`.
+### Practical Considerations
+
+At very high rates (e.g. ≥ 10 kHz), overall system performance depends on:
+
+- CPU speed
+- USB / serial driver efficiency
+- Number of active channels
+- Data processing in the application
+
+For maximum performance and minimal overhead, consider:
+
+- Running acquisition in a dedicated thread
+- Minimizing work inside the read loop
+- Offloading processing to another thread or process
+
+### Comparison with the ME-Systeme Windows DLL
+
+For comparison with the official ME-Systeme Windows DLL, see:
+
+```bash
+examples/benchmarkdll.py
+```
+
+Both implementations show comparable throughput under identical conditions.
+
+### Important: Channel Configuration (`NUM_OBJECTS`)
+
+When using the DLL benchmark (`examples/benchmarkdll.py`), make sure that
+the constant `NUM_OBJECTS` matches the number of active measurement channels
+configured on the device.
+
+The DLL returns raw values, not frames. A "frame" consists of one value per
+active channel. Therefore, the number of frames is calculated as:
+
+```python
+frames = values_read / NUM_OBJECTS
+```
+
+
+If `NUM_OBJECTS` is set incorrectly:
+
+- The calculated number of frames will be wrong
+- The reported effective rate will be misleading
+
+#### Example
+
+- 3 active channels → `NUM_OBJECTS = 3`
+- 8 active channels → `NUM_OBJECTS = 8`
+
+Make sure this value reflects the actual channel mapping of your device
+(e.g. as configured via GSVmulti or other configuration tools).
 
 ## Logging
 
