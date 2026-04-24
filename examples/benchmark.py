@@ -39,10 +39,12 @@ from gsv86lib import gsv86
 
 # Adjust the serial port!
 PORT = "COM3"          # e.g. "COM3" on Windows or "/dev/ttyACM0" on Linux
-BAUDRATE = 115200
+# GSV8: 115200
+# GSV6: 230400
+BAUDRATE = 230400
 
 # Transmission frequency of the GSV-8 in Hz
-sample_frequency = 12000.0     # the device sends sample_frequency frames per second (so one frame every 1000/sample_frequency ms)
+sample_frequency = 1000     # the device sends sample_frequency frames per second (so one frame every 1000/sample_frequency ms)
 
 # Sampling rate of the worker thread in milliseconds
 # (time between two ReadMultiple() calls)
@@ -59,7 +61,7 @@ max_frames_per_call = 1500
 # Total measurement duration in seconds
 # after measurement_duration_s seconds the application must register measurement_duration_s * sample_frequency frames
 #  example: after 10s the application must register 10 * sample_frequency frames
-measurement_duration_s = 1.0     
+measurement_duration_s = 10.0     
  
 
 
@@ -95,24 +97,48 @@ class ReadMultipleWorker(threading.Thread):
             if frames:
                 # frames is a list of measurement frames -> count them
                 
+                now = time.perf_counter()
                 if not self._started_measuring:
-                    self.t_start = time.perf_counter()
+                    self.t_start = now
                     #self.total_samples = 0
                     self._started_measuring = True
-                self.total_samples += len(frames)
+                else:
+                    self.total_samples += len(frames)
 
             # wait until the next ReadMultiple() call
             time.sleep(refresh_s)
 
+    
+def drain_readmultiple(dev, max_count=10000, quiet_time_s=0.2, timeout_s=3.0):
+    total = 0
+    t_start = time.perf_counter()
+    t_last_frame = time.perf_counter()
+
+    while True:
+        frames = dev.ReadMultiple(max_count=max_count)
+
+        if frames:
+            total += len(frames)
+            t_last_frame = time.perf_counter()
+        else:
+            time.sleep(0.005)
+
+        now = time.perf_counter()
+
+        if now - t_last_frame >= quiet_time_s:
+            break
+
+        if now - t_start >= timeout_s:
+            break
+
+    return total
 
 # -----------------------------
 # Device initialization
 # -----------------------------
 def init_device() -> gsv86:
-    print(f"Connecting to GSV-8 on {PORT} @ {BAUDRATE} baud ...")
+    print(f"Connecting on {PORT} @ {BAUDRATE} baud ...")
     dev = gsv86(PORT, BAUDRATE)
-
-
 
     # Set device transmission rate (if supported)
     try:
@@ -127,6 +153,10 @@ def init_device() -> gsv86:
         print("StartTransmission() executed – device is now streaming with a data rate of", dev.readDataRate(), "Hz")
     except Exception as e:
         print(f"Error: StartTransmission() failed: {e}", file=sys.stderr)
+
+    # Important: drain after readDataRate()
+    flushed = drain_readmultiple(dev, quiet_time_s=1.0, timeout_s=1.0)
+    print(f"Flushed frames before benchmark start: {flushed}")
 
     # small delay to allow internal buffering
     #time.sleep(0.5)
@@ -168,13 +198,6 @@ def main():
     #print("Calling StopTransmission() ...", time.perf_counter() - device_start)
     stop_event.set()
     worker.join(timeout=2.0)
-
-    # drain remaining frames before stopping transmission
-    while True:
-        frames = dev.ReadMultiple(max_frames_per_call)
-        if not frames:
-            break
-        worker.total_samples += len(frames)
 
     elapsed = time.perf_counter() - worker.t_start
     print("Frames:", worker.total_samples)

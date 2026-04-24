@@ -23,7 +23,7 @@ import threading
 from pathlib import Path
 from ctypes import (
     WinDLL, byref,
-    c_int, c_double, c_char_p, POINTER
+    c_int, c_double, c_char_p, c_ulong, POINTER
 )
 import ctypes as C
 
@@ -37,16 +37,23 @@ DLL_NAME = "MEGSV86x64.dll"   # e.g. "MEGSV86w32.dll" or your exact DLL name
 # COM port number used by the device
 # Example: COM3 -> COM_PORT = 3
 COM_PORT = 3
+# GSV8: 115200
+# GSV6: 230400
+BITRATE = 230400
 
 # Transmission frequency of the GSV-8 in Hz
-sample_frequency = 12000.0
+sample_frequency = 1000
 # Device sends sample_frequency frames per second
 # (so one frame every 1000/sample_frequency ms)
+
+# DLL receive buffer size in measurement values, not frames.
+# Must be >= max_frames_per_call * NUM_OBJECTS or larger.
+DLL_BUFFER_SIZE = 20000
 
 # Number of mapped value objects (channels)
 # For a standard GSV-8 with all 8 channels mapped, this is 8.
 # If you have a different mapping, adjust accordingly.
-NUM_OBJECTS = 8
+NUM_OBJECTS = 3
 
 # Sampling rate of the worker thread in milliseconds
 # (time between two GSV86readMultiple() calls)
@@ -57,7 +64,7 @@ refresh_ms = 10
 max_frames_per_call = 1500
 
 # Total measurement duration in seconds
-measurement_duration_s = 1.0
+measurement_duration_s = 10.0
 
 # -----------------------------
 # Load DLL + declare signatures
@@ -70,8 +77,8 @@ if not dll_path.exists():
 MEGSV = WinDLL(str(dll_path))
 
 # Function signatures we use
-MEGSV.GSV86actExt.argtypes = [c_int]
-MEGSV.GSV86actExt.restype = c_int
+MEGSV.GSV86activateExtended.argtypes = [c_int, c_ulong, c_ulong, c_ulong]
+MEGSV.GSV86activateExtended.restype = c_int
 
 MEGSV.GSV86release.argtypes = [c_int]
 MEGSV.GSV86release.restype = c_int
@@ -202,11 +209,13 @@ class ReadMultipleWorker(threading.Thread):
                 # Each "frame" consists of num_objects values
                 frames = values_read // self._num_objects
 
+                now = time.perf_counter()
                 if frames > 0:
                     if not self._started_measuring:
-                        self.t_start = time.perf_counter()
+                        self.t_start = now
                         self._started_measuring = True
-                    self.total_samples += frames
+                    else:
+                        self.total_samples += frames
 
             # Wait until the next read
             time.sleep(refresh_s)
@@ -216,10 +225,18 @@ class ReadMultipleWorker(threading.Thread):
 # -----------------------------
 
 def init_device():
-    print(f"Connecting to GSV-8 via MEGSV86 on COM{COM_PORT} ...")
+    print(f"Connecting via MEGSV86 on COM{COM_PORT} at {BITRATE} baud ...")
 
     # Activate device on given COM port
-    check(MEGSV.GSV86actExt(COM_PORT), "GSV86actExt")
+    check(
+        MEGSV.GSV86activateExtended(
+            COM_PORT,
+            BITRATE,
+            DLL_BUFFER_SIZE,
+            0,
+        ),
+        "GSV86activateExtended",
+    )
 
     MEGSV.GSV86stopTX(COM_PORT)
     # Get allowed data rate range from device
@@ -284,35 +301,6 @@ def main():
     # Stop worker thread
     stop_event.set()
     worker.join(timeout=2.0)
-
-    # Drain remaining values from DLL buffer
-    buffer_len = max_frames_per_call * NUM_OBJECTS
-    out_buf = (c_double * buffer_len)()
-    valsread = c_int(0)
-    errflags = c_int(0)
-
-    while True:
-        rc = MEGSV.GSV86readMultiple(
-            COM_PORT,
-            0,
-            out_buf,
-            buffer_len,
-            byref(valsread),
-            byref(errflags),
-        )
-
-        if rc < 0:
-            msg = dll_error_text(COM_PORT)
-            print(f"Final drain: GSV86readMultiple() failed: {msg}", file=sys.stderr)
-            break
-
-        if rc != 1 or valsread.value <= 0:
-            # No more values available
-            break
-
-        values_read = valsread.value
-        frames = values_read // NUM_OBJECTS
-        worker.total_samples += frames
 
     elapsed = time.perf_counter() - worker.t_start
     print("Frames:", worker.total_samples)
